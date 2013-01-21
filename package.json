@@ -1,9 +1,10 @@
 {
     "name": "mval",
     "version": "1.0.0",
-    "description": "Module used to validate manifests of various kind (jQuery, npm, composer, wordpress)",
+    "description": "Command line tool used to validate manifests of various kinds (jQuery, npm, composer, wordpress)",
     "author" : "Victor Jonsson <http://victorjonsson.se>",
     "main": "./mval.js",
+    "keywords": ["manifest","build","deployment","validation"],
     "dependencies": {
         "semver" : ">= 1.1.2",
         "commander": ">= 1.0.5"
@@ -13,7 +14,11 @@
         "type": "MIT",
         "url": "https://github.com/isaacs/semver/raw/master/LICENSE"
     },
-    "repository": "git://github.com/isaacs/node-semver.git",
+    "repository": {
+        "type": "git",
+        "url": "git@github.com:victorjonsson/nodejs-mval.git"
+    },
+    "homepage": "https://github.com/victorjonsson/nodejs-mval",
     "bin": {
         "mval": "./cli.js"
     },
