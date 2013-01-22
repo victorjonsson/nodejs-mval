@@ -124,7 +124,57 @@ module.exports = (function() {
          * @return {Array}
          */
         validateWordpress = function(fileContent) {
+            var error = [];
+            var isReadmeFile = fileContent.indexOf('php') == -1;
+            if( isReadmeFile ) {
+                var testedUpTo = getWPArg(fileContent, 'Tested up to') +'.0';
+                if( !isValidWPVersion(testedUpTo) )
+                    error.push('Parameter "Tested up to" does not have a valid version');
 
+                var requires = getWPArg(fileContent, 'Requires at least');
+                if( !isValidWPVersion(requires) )
+                    error.push('Parameter "Requires at least" does not have a valid version');
+            }
+            else {
+                var version = getWPArg(fileContent, 'Version');
+                if( !isValidWPVersion(version) )
+                    error.push('Parameter "Version" is not valid');
+                var name = getWPArg(fileContent, 'Plugin name');
+                if( !name )
+                    error.push('Missing parameter "Plugin name"');
+            }
+
+            var stableTag = getWPArg(fileContent, 'Stable tag');
+            if( !isValidWPVersion(stableTag) )
+                error.push('Parameter "Stable tag" does not have a valid version');
+
+            ['License URI', 'Donate link', 'Plugin URI', 'Author URI'].every(function(param) {
+                var val = getWPArg(fileContent, param);
+                if( val && !isURL(val) ) {
+                    error.push('"'+param+'" is not valid');
+                }
+                return true;
+            });
+
+            return error;
+        },
+
+        /**
+         * @param {String} content
+         * @param {String} name
+         * @return {String|Boolean}
+         */
+        getWPArg = function(content, name) {
+            var match = content.match(new RegExp(name+'(| ):(.*)'));
+            return (match && match[2]) ? match[2].trim():false;
+        },
+
+        /**
+         * @param {String} version
+         * @return {Boolean}
+         */
+        isValidWPVersion = function(version) {
+            return version && (semver.valid(version) || semver.valid(version+'.0'));
         },
 
         /**
@@ -151,7 +201,7 @@ module.exports = (function() {
                     throw new Error('Unable to parse JSON');
                 }
             }
-            return content;
+            return content.toString();
         },
 
         /**

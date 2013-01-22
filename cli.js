@@ -57,7 +57,7 @@ else {
         if( program.verbose ) {
             throw e;
         } else {
-            console.error(colors.red +'* '+e.message + (program.verbose ? '':' (add -v for more info)') +colors.reset );
+            console.error(colors.red +'* '+e.message + ' (add -v for more info)' +colors.reset );
         }
     }
 }
