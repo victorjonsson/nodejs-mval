@@ -332,7 +332,7 @@ module.exports = (function() {
             var isFile = false;
             try {
                 isFile = fs.statSync(arg).isFile();
-            } catch(e) {}
+            } catch(e){}
 
             if ( isFile ) {
 
