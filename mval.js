@@ -411,7 +411,7 @@ module.exports = (function() {
          * Returns an array with validation faults
          * @param {String|Object} arg Either path to file or manifest object
          * @param {String} [type] Either 'jquery', 'npm', 'composer' or 'wordpress' (MANIFEST)
-         * @return {Boolean} Returns an array with validation faults
+         * @return {Array} Returns an array with validation faults
          */
         validate : function(arg, type) {
             var isFile = false;

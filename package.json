@@ -1,7 +1,7 @@
 {
     "name": "mval",
-    "version": "1.1.0",
-    "description": "Command line tool used to validate manifests of various kinds (jQuery, npm, composer, wordpress)",
+    "version": "1.1.2",
+    "description": "Command line tool used to validate manifests of various kinds (jQuery, Android, npm, composer, wordpress)",
     "author" : "Victor Jonsson <http://victorjonsson.se>",
     "main": "./mval.js",
     "keywords": ["manifest","build","deployment","validation"],
