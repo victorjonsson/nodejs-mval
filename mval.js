@@ -25,13 +25,100 @@ module.exports = (function() {
                     faults = faults.concat(validateComposer(input));
                     break;
                 case MANIFEST.WORDPRESS:
-                    faults = faults.concat(validateWordpress(input));
+                    faults = faults.concat(validateWordpressReadme(input));
                     break;
                 case MANIFEST.NPM:
                     faults = faults.concat(validateNPM(input));
                     break;
+                case MANIFEST.ANDROID:
+                    faults = faults.concat(validateAndroidManifest(input));
+                    break;
                 default:
                     throw new Error('Unknown type '+type);
+            }
+
+            return faults;
+        },
+
+        /**
+         * @param {String} input
+         * @return {Array}
+         */
+        validateAndroidManifest = function( input ) {
+            var faults = [];
+            try {
+                var xmlDoc = require("libxmljs").parseXml(input);
+                if( xmlDoc.error ) {
+                    throw new Error(xmlDoc.error);
+                }
+            } catch(e) {
+                return ['Invalid XML, parse failed ('+ e.message +')'];
+            }
+
+            var attr = xmlDoc.root().attrs();
+            Object.keys(attr).forEach(function(k, name) {
+                if(attr[k].name() == 'versionName' && !semver.valid(attr[k].value())) {
+                    faults.push('Manifest attribute android:versionName does not contain a valid version');
+                }
+            });
+
+            if(xmlDoc.find('application').length != 1) {
+                faults.push('The manifest has to contain exactly one node named "application"');
+            }
+            else {
+
+                var validateBool = function(val) {
+                    return val == 'true' || val == 'false';
+                };
+                var validationScheme = {
+                    'name' : function(val) {
+                                return /^[a-zA-Z0-9\.\_]*$/.test(val);
+                            },
+                    'mimeType' : function(val) {
+                                var parts = val.split('/');
+                                return parts.length == 2 && /^[a-zA-Z0-9\_]*$/.test(parts[0]) && /^[a-zA-Z0-9\_]*$/.test(parts[1])
+                            },
+                    'scheme' : function(val) {
+                                var colonPos = val.indexOf(':');
+                                return /^[a-z\:]*$/.test(val) && (colonPos == -1 || val.substr(-1) == ':');
+                            },
+                    'port' : function(val) {
+                            return /^[0-9]*$/.test(val);
+                        },
+                    'hardwareAccelerated' : validateBool,
+                    'syncable' : validateBool,
+                    'excludeFromRecents' : validateBool,
+                    'exported' : validateBool
+                };
+
+                // todo: add more validations...
+
+                var validateAttributeValues = function(nodeName) {
+                    xmlDoc.find(nodeName).forEach(function(attrNode, v) {
+                        for(var attrName in validationScheme ) {
+                            if( validationScheme.hasOwnProperty(attrName) && typeof validationScheme[attrName] == 'function' ) {
+                                var attr = attrNode.attr(attrName);
+                                if( attr && !validationScheme[attrName](attr.value()) ) {
+                                    faults.push('Element '+nodeName+' contains invalid value "'+attr.value()+'" in attribute "'+attrName+'"');
+                                }
+                               /* else if( attr ) {
+                                    console.log(attrName);
+                                } */
+                            }
+                        }
+                    });
+                };
+
+                validateAttributeValues('uses-permission');
+                validateAttributeValues('application/activity');
+                validateAttributeValues('application/activity/intent-filter/category');
+                validateAttributeValues('application/activity/intent-filter/action');
+                validateAttributeValues('application/activity/intent-filter/data');
+                validateAttributeValues('application/provider');
+                validateAttributeValues('application/service');
+                validateAttributeValues('application/service/intent-filter/data');
+                validateAttributeValues('application/service/intent-filter/category');
+                validateAttributeValues('application/service/intent-filter/action');
             }
 
             return faults;
@@ -58,7 +145,7 @@ module.exports = (function() {
             }
 
             var version = obj.version && obj.version.indexOf('-') ? obj.version.substr(0, obj.version.indexOf('-')) : obj.version;
-            if( !semver.valid(obj.version) ) {
+            if( !semver.valid(obj.version) && obj.version != 'dev-master' ) {
                 faults.push('Field "version" does not have a valid version');
             }
 
@@ -123,26 +210,15 @@ module.exports = (function() {
          * @param {String} fileContent
          * @return {Array}
          */
-        validateWordpress = function(fileContent) {
+        validateWordpressReadme = function(fileContent) {
             var error = [];
-            var isReadmeFile = fileContent.indexOf('php') == -1;
-            if( isReadmeFile ) {
-                var testedUpTo = getWPArg(fileContent, 'Tested up to') +'.0';
-                if( !isValidWPVersion(testedUpTo) )
-                    error.push('Parameter "Tested up to" does not have a valid version');
+            var testedUpTo = getWPArg(fileContent, 'Tested up to') +'.0';
+            if( !isValidWPVersion(testedUpTo) )
+                error.push('Parameter "Tested up to" does not have a valid version');
 
-                var requires = getWPArg(fileContent, 'Requires at least');
-                if( !isValidWPVersion(requires) )
-                    error.push('Parameter "Requires at least" does not have a valid version');
-            }
-            else {
-                var version = getWPArg(fileContent, 'Version');
-                if( !isValidWPVersion(version) )
-                    error.push('Parameter "Version" is not valid');
-                var name = getWPArg(fileContent, 'Plugin name');
-                if( !name )
-                    error.push('Missing parameter "Plugin name"');
-            }
+            var requires = getWPArg(fileContent, 'Requires at least');
+            if( !isValidWPVersion(requires) )
+                error.push('Parameter "Requires at least" does not have a valid version');
 
             var stableTag = getWPArg(fileContent, 'Stable tag');
             if( !isValidWPVersion(stableTag) )
@@ -184,7 +260,16 @@ module.exports = (function() {
             JQUERY : '.jquery.json',
             COMPOSER : 'composer.json',
             WORDPRESS : 'readme.txt',
-            NPM : 'package.json'
+            NPM : 'package.json',
+            ANDROID : 'AndroidManifest.xml'
+        },
+
+        /**
+         * @param {String} manifest
+         * @returns {Boolean}
+         */
+        isJSONManifest = function(manifest) {
+            return [MANIFEST.WORDPRESS, MANIFEST.ANDROID].indexOf(manifest) === -1;
         },
 
         /**
@@ -194,7 +279,7 @@ module.exports = (function() {
          */
         loadFile = function(file, type) {
             var content = fs.readFileSync(file);
-            if( type !== MANIFEST.WORDPRESS ) {
+            if( isJSONManifest(type) ) {
                 try {
                     return JSON.parse(content);
                 } catch(e) {
@@ -213,7 +298,7 @@ module.exports = (function() {
                 for(var plugin in obj) {
                     if( obj.hasOwnProperty(plugin) ) {
                         var version = obj[plugin];
-                        if( !semver.validRange(version) )
+                        if( !semver.validRange(version) && version != 'dev-master' )
                             error.push('Version number "'+version+'" for "'+plugin+'" is not a valid version');
                     }
                 }
