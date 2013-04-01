@@ -1,7 +1,7 @@
 nodejs-mval
 ===========
 
-Command line tool used to validate manifests of various kind (jQuery, Android, composer, npm, wordpress)
+Command line tool used to validate manifests of various kind (jQuery, Android, composer, npm, [launch.js](https://github.com/victorjonsson/launch.js) wordpress)
 
 
 ## Usage
