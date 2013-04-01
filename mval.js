@@ -33,6 +33,9 @@ module.exports = (function() {
                 case MANIFEST.ANDROID:
                     faults = faults.concat(validateAndroidManifest(input));
                     break;
+                case MANIFEST.LAUNCH:
+                    faults = faults.concat(validateLaunchJS(input));
+                    break;
                 default:
                     throw new Error('Unknown type '+type);
             }
@@ -175,7 +178,7 @@ module.exports = (function() {
 
             error = error.concat( findInvalidVersions(obj.dependencies) );
             error = error.concat( findInvalidVersions(obj.devDependencies) );
-            error = error.concat( findInvalidURLs(['homepage', 'demo', 'bugs'], obj) );
+            error = error.concat( findInvalidURLs(['homepage', 'demo', 'bugs', 'download'], obj) );
 
             if( obj.keywords && !(obj.keywords instanceof Array) ) {
                 error.push('Field "keywords" has to be an array');
@@ -236,6 +239,54 @@ module.exports = (function() {
         },
 
         /**
+         * @param {Object} obj
+         * @return {Array}
+         */
+        validateLaunchJS = function(obj) {
+            var error = [];
+            var isValidFile = function(f) {
+                var ext = f.substr(-4).toLowerCase();
+                var fileExtensions = ['jpeg', '.css', '.gif', '.png', '.htm', 'html', 'json', 'jpeg', '.txt', '.xml'];
+                return ext.substr(-3) == '.js' || fileExtensions.indexOf(ext) > -1;
+            };
+            if( !semver.valid(obj.version) ) {
+                error.push('Field "version" does not have a valid version');
+            }
+            if( !obj.name ) {
+                error.push('Field "name" missing');
+            }
+            if( !obj.files ) {
+                error.push('Field "files" missing');
+            }
+            else {
+                obj.files.every(function(f) {
+                    if( !isValidFile(f) ) {
+                        error.push('The file "'+f+'" is not a valid file name');
+                    }
+                    return true;
+                });
+            }
+            if( obj.nocache ) {
+                obj.nocache.every(function(f) {
+                    if( !isValidFile(f) ) {
+                        error.push('The file "'+f+'" is not a valid file name');
+                    }
+                    return true;
+                });
+            }
+            if( obj.main && obj.files.indexOf(obj.main) === -1) {
+                error.push('The field "main" has to refer to a file that exists in the property "files"');
+            }
+            if( obj.main ) {
+                var ext = obj.main.substr(-4).toLowerCase();
+                if( ext != 'html' && ext != '.htm' ) {
+                    error.push('The field "main" has to refer to a file that has extension .html or .htm');
+                }
+            }
+            return error;
+        },
+
+        /**
          * @param {String} content
          * @param {String} name
          * @return {String|Boolean}
@@ -261,7 +312,8 @@ module.exports = (function() {
             COMPOSER : 'composer.json',
             WORDPRESS : 'readme.txt',
             NPM : 'package.json',
-            ANDROID : 'AndroidManifest.xml'
+            ANDROID : 'AndroidManifest.xml',
+            LAUNCH : 'app.manifest'
         },
 
         /**
@@ -283,7 +335,9 @@ module.exports = (function() {
                 try {
                     return JSON.parse(content);
                 } catch(e) {
-                    throw new Error('Unable to parse JSON');
+                    var err = Error('Unable to parse JSON');
+                    err.code = 1912;
+                    throw err;
                 }
             }
             return content.toString();
@@ -432,7 +486,7 @@ module.exports = (function() {
                 try {
                     content = loadFile(arg, type);
                 } catch(e) {
-                    throw new Error('Unable to parse JSON using '+arg);
+                    return ['File has invalid content ('+ e.message +')'];
                 }
 
                 return validateManifest(content, type);
