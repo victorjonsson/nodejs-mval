@@ -41,6 +41,10 @@ if( faults.length > 0 ) {
 
 ### Changelog
 
+**1.1.4**
+- Numerous small bugs are fixed
+- Change in how WordPress version definitions is validated
+
 **1.1.0**
 
 - Fixed bug in wordpress validation

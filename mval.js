@@ -301,7 +301,8 @@ module.exports = (function() {
          * @return {Boolean}
          */
         isValidWPVersion = function(version) {
-            return version && (semver.valid(version) || semver.valid(version+'.0'));
+	    var versionChunks = (version || '').split('.');
+	    return versionChunks.length > 1 && versionChunks[0].match(/^[0-9]+$/) && versionChunks[versionChunks.length - 1].match(/^[0-9]+$/);
         },
 
         /**
