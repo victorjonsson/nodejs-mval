@@ -1,4 +1,4 @@
-#!/usr/bin/node
+#!/usr/bin/env node
 
 var program = require('commander'),
     mval = require('./mval.js'),
